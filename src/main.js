@@ -6,6 +6,7 @@ import { Screen, SCREEN_W, SCREEN_H } from './render/screen.js';
 import { Beeper } from './render/audio.js';
 import { Keyboard } from './input/keyboard.js';
 import { Gamepad } from './input/gamepad.js';
+import { Touch } from './input/touch.js';
 
 const STEP_T = 34944;      // fixed simulation quantum: 1/100 s of Z80 time
 const MAX_FRAME_S = 0.1;   // never simulate more than this per animation frame
@@ -24,7 +25,8 @@ async function main() {
   const beeper = new Beeper();
   const keyboard = new Keyboard();
   const gamepad = new Gamepad();
-  const touch = window.__touchInput; // provided by src/input/touch.js when loaded (Phase 3)
+  const touch = new Touch(document.getElementById('touch'));
+  touch.onPanelToggle = (open) => { if (mode === 'game') paused = open; };
 
   let mode = 'title';
   let game = null;
@@ -37,7 +39,8 @@ async function main() {
     for (const k in input) input[k] = false;
     keyboard.read(input);
     gamepad.read(input);
-    touch?.read(input);
+    if (input.left || input.right || input.up || input.down || input.jump) touch.notifyOtherInput();
+    touch.read(input);
     return input;
   }
 
@@ -68,7 +71,7 @@ async function main() {
       { text: 'ARROWS OR WASD TO MOVE', row: 14, attr: 0x07 },
       { text: 'SPACE OR Z TO JUMP', row: 15, attr: 0x07 },
       { text: 'P PAUSE  M MUTE  F FULLSCREEN', row: 16, attr: 0x07 },
-      { text: 'PRESS FIRE TO START', row: 20, attr: 0x44 },
+      { text: touch.active ? 'TAP TO START' : 'PRESS FIRE TO START', row: 20, attr: 0x44 },
     ]);
   }
 
@@ -76,9 +79,9 @@ async function main() {
     const dt = Math.min(MAX_FRAME_S, (now - last) / 1000);
     last = now;
     const inp = readInput();
-    const fire = keyboard.consume('Space', 'Enter', 'KeyZ', 'KeyM') || gamepad.anyPressed || touch?.consumeStart?.();
+    const fire = keyboard.consume('Space', 'Enter', 'KeyZ', 'KeyM') || gamepad.anyPressed || touch.consumeStart();
 
-    if (keyboard.consume('KeyP')) paused = !paused;
+    if (keyboard.consume('KeyP')) { paused = !paused; touch.notifyOtherInput(); }
     if (keyboard.consume('KeyF')) toggleFullscreen();
     if (keyboard.consume('KeyM') && mode === 'game') beeper.muted = !beeper.muted;
 

@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "extract": "node tools/extract.js && node tools/render.js",
+    "extract": "node tools/extract.js && node tools/render.js && node tools/icons.js",
     "dev": "node tools/serve.js",
     "test": "node --test test/*.test.js"
   },
