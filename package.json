@@ -1,0 +1,16 @@
+{
+  "name": "chuckie-egg",
+  "version": "0.1.0",
+  "description": "Browser reimplementation of the 1983 ZX Spectrum Chuckie Egg",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "extract": "node tools/extract.js && node tools/render.js",
+    "dev": "node tools/serve.js",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "z80-emulator": "^2.3.0"
+  }
+}
