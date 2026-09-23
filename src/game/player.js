@@ -1,6 +1,6 @@
 // Hen-House Harry: walking, ladders, jumping, falling and lifts.
 // Each function is a port of one routine; addresses refer to the disassembly.
-import { TILE, FACE_RIGHT, FACE_LEFT, CLIMB, JUMP_VEL_INIT, JUMP_VEL_STEP, FALL_VEL_INIT, FALL_VEL_MIN, JUMP_CEILING_Y } from './consts.js';
+import { TILE, MAP_COLS, FACE_RIGHT, FACE_LEFT, CLIMB, JUMP_VEL_INIT, JUMP_VEL_STEP, FALL_VEL_INIT, FALL_VEL_MIN, JUMP_CEILING_Y } from './consts.js';
 import { idx, at, tileAt, isSolid } from './map.js';
 import { beep } from './sfx.js';
 import { duckCheck } from './duck.js';
@@ -24,7 +24,9 @@ export function turnCheck(s, input) {
   if (isSolid(at(s.map, j))) return;
   if (isSolid(at(s.map, j - 32))) return;
   const below = at(s.map, j - 64);
-  if (below === 0 || below >= 9) return;
+  // easy mode: step off into thin air (and fall) unless also climbing
+  const stepIntoAir = s.cheats.easy && !input.up && !input.down;
+  if ((below === 0 || below >= 9) && !stepIntoAir) return;
   s.base = input.left ? FACE_LEFT : FACE_RIGHT;
 }
 
@@ -111,11 +113,46 @@ export function jumpInit(s, input) {
   if (input.right) { s.jumpDx = 1; s.base = FACE_RIGHT; }
   else if (input.left) { s.jumpDx = 0xff; s.base = FACE_LEFT; }
   else { s.jumpDx = 0; }
+  s.airTicks = 0;
+}
+
+// Easy mode: a direction pressed this many ticks after a straight-up jump
+// still sends the jump that way (about 0.15 s).
+const JUMP_GRACE_TICKS = 8;
+
+/** Easy mode: can the airborne sprite move one pixel in direction dx (1 or 0xff)? */
+function canDrift(s, dx) {
+  if (dx === 1 ? s.x >= 0xee : s.x <= 1) return false;
+  const nx = s.x + (dx === 1 ? 1 : -1);
+  const col = dx === 1 ? (nx + 15) >> 3 : nx >> 3; // column the leading edge moves into
+  for (let row = ((s.y - 15) & 0xff) >> 3; row <= s.y >> 3; row++) {
+    if (isSolid(at(s.map, row * MAP_COLS + col))) return false;
+  }
+  return true;
+}
+
+/** Easy mode: left/right steer a fall, or turn a straight-up jump just after take-off. */
+function steer(s, input) {
+  s.airTicks = (s.airTicks | 0) + 1;
+  const falling = s.jumpState === 1 || s.vdir !== 1;
+  const grace = s.jumpState === 2 && s.vdir === 1 && s.jumpDx === 0 && s.airTicks <= JUMP_GRACE_TICKS;
+  if (!falling && !grace) return;
+  let dx;
+  if (input.left) dx = 0xff;
+  else if (input.right) dx = 1;
+  else if (input.down && falling) dx = 0; // down: drop straight
+  else return; // no steer: the original physics (momentum, wall bounces) carry on
+  if (dx !== 0 && !canDrift(s, dx)) dx = 0;
+  if (dx === s.jumpDx) return;
+  s.jumpDx = dx;
+  if (dx === 1) s.base = FACE_RIGHT;
+  else if (dx === 0xff) s.base = FACE_LEFT;
 }
 
 /** $A21C: airborne update, run on every inner-loop iteration. */
-export function airStep(s) {
+export function airStep(s, input) {
   if (s.frameDiv === 1) {
+    if (s.cheats.easy && input) steer(s, input);
     // $A22A: one horizontal pixel per logic tick, bouncing off the screen edges
     s.x = (s.x + s.jumpDx) & 0xff;
     if (s.x === 0) s.jumpDx = 1;

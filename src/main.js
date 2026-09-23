@@ -27,11 +27,15 @@ async function main() {
   const gamepad = new Gamepad();
   const touch = new Touch(document.getElementById('touch'));
   touch.onPanelToggle = (open) => { if (mode === 'game') paused = open; };
+  touch.onCheatToggle = (on) => setCheat(on);
 
   let mode = 'title';
   let game = null;
   let highScore = Number(localStorage.getItem('chuckie.highscore') || 0);
   let paused = false;
+  let cheat = false;
+  try { cheat = localStorage.getItem('chuckie.cheat') === '1'; } catch { /* storage blocked */ }
+  touch.setCheat(cheat);
   let acc = 0, last = performance.now();
   const input = { ...NO_INPUT };
 
@@ -44,8 +48,23 @@ async function main() {
     return input;
   }
 
+  /** Cheat mode can be switched any time; a game that ever used it never sets the high score. */
+  function setCheat(on) {
+    cheat = on;
+    try { localStorage.setItem('chuckie.cheat', on ? '1' : '0'); } catch { /* storage blocked */ }
+    touch.setCheat(on);
+    if (game) { game.cheats.easy = on; if (on) game.cheated = true; }
+  }
+
+  function recordHighScore() {
+    if (!game || game.cheated) return;
+    highScore = Math.max(highScore, scoreValue(game));
+    localStorage.setItem('chuckie.highscore', String(highScore));
+  }
+
   function startGame() {
-    game = newGame(levels, rom);
+    game = newGame(levels, rom, { easy: cheat });
+    game.cheated = cheat;
     beginPlay(game);
     mode = 'game';
     acc = 0;
@@ -71,6 +90,7 @@ async function main() {
       { text: 'ARROWS OR WASD TO MOVE', row: 14, attr: 0x07 },
       { text: 'SPACE OR Z TO JUMP', row: 15, attr: 0x07 },
       { text: 'P PAUSE  M MUTE  F FULLSCREEN', row: 16, attr: 0x07 },
+      { text: `CHEAT MODE ${cheat ? 'ON ' : 'OFF'}  ${touch.active ? '(COG)' : '(C)'}`, row: 18, attr: cheat ? 0x46 : 0x05 },
       { text: touch.active ? 'TAP TO START' : 'PRESS FIRE TO START', row: 20, attr: 0x44 },
     ]);
   }
@@ -85,7 +105,10 @@ async function main() {
     if (keyboard.consume('KeyF')) toggleFullscreen();
     if (keyboard.consume('KeyM') && mode === 'game') beeper.muted = !beeper.muted;
 
+    if (keyboard.consume('Escape') && mode !== 'title') { recordHighScore(); mode = 'title'; paused = false; keyboard.clearPressed(); } // the only way out of a cheat game
+
     if (mode === 'title') {
+      if (keyboard.consume('KeyC')) setCheat(!cheat);
       if (fire) startGame();
       drawTitle();
     } else if (mode === 'game') {
@@ -95,8 +118,7 @@ async function main() {
         beeper.flush(game.sfx, game.t);
         for (const e of game.events) {
           if (e.type === 'gameover') {
-            highScore = Math.max(highScore, scoreValue(game));
-            localStorage.setItem('chuckie.highscore', String(highScore));
+            recordHighScore();
             mode = 'gameover';
             gameOverUntil = now + 4000;
           }

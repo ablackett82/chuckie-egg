@@ -28,6 +28,13 @@ export function addScore(s, b) {
 
 export const scoreValue = (s) => s.score.reduce((v, d) => v * 10 + d, 0);
 
+/** Easy mode: halve the score (to a multiple of 10) without awarding a life. */
+export function halveScore(s) {
+  let v = Math.floor(scoreValue(s) / 20) * 10;
+  for (let i = 5; i >= 0; i--) { s.score[i] = v % 10; v = Math.floor(v / 10); }
+  s.scoreTenK = s.score[1];
+}
+
 /**
  * $A1B8: decrement a 3-digit counter (bonus/10 or time). Returns true if the
  * counter was already 000 and rolled (digits become [255, 9, 9]).

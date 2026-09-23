@@ -128,6 +128,7 @@ export class Screen {
     s.score.forEach((dgt, i) => this.udg(D + dgt, 5 + i, 0));
     const spare = Math.min(s.lives, 7) - 1;
     for (let i = 0; i < spare; i++) this.udg(namedTiles.lives_icon, 5 + i, 1);
+    if (s.cheats.easy) this.text('CHEAT', 26, 1, 0x06);
     const status = hud.statusRow.ids.slice();
     const lvl = s.level + 1;
     status[0x9772 - 0x9767] = D + (Math.floor(lvl / 10) % 10);

@@ -8,7 +8,7 @@ import {
 } from './consts.js';
 import { mapFromGrid } from './map.js';
 import { beep } from './sfx.js';
-import { addScore, decCounter, pickup } from './scoring.js';
+import { addScore, decCounter, pickup, halveScore } from './scoring.js';
 import { moveDuck } from './duck.js';
 import { moveLifts } from './lifts.js';
 import { moveHens, henCollision } from './hens.js';
@@ -17,10 +17,10 @@ import { turnCheck, walk, edgeCheck, ladder, jumpInit, airStep, drawPlayer } fro
 export const NO_INPUT = Object.freeze({ left: false, right: false, up: false, down: false, jump: false });
 
 /** Create a fresh game ($A59D..$A62C) for one player. */
-export function newGame(levels, rom, { startLevel: firstLevel = 0, noHens = false, noDuck = false } = {}) {
+export function newGame(levels, rom, { startLevel: firstLevel = 0, noHens = false, noDuck = false, easy = false } = {}) {
   const s = {
     levels, rom,
-    cheats: { noHens, noDuck }, // test hooks mirroring the documented POKEs
+    cheats: { noHens, noDuck, easy }, // noHens/noDuck: test hooks mirroring the documented POKEs; easy: see tick/onDeath/player.js
     level: firstLevel & 0xff,  // $6EEB (level - 1)
     lives: START_LIVES,       // $6EF0
     score: [0, 0, 0, 0, 0, 0],// $6EC8..
@@ -129,6 +129,7 @@ export function tick(s, input) {
     jumpInit(s, input);
   } else {
     if (s.jumpState === 0) {
+      if (s.cheats.easy) input = ladderSnap(s, input);
       turnCheck(s, input);
       if (s.base !== CLIMB) { walk(s, input); if (s.dead) return 'death'; }
       if (!s.onLift) edgeCheck(s);
@@ -137,6 +138,17 @@ export function tick(s, input) {
     if (s.dead) return 'death';
   }
   return null;
+}
+
+/**
+ * Easy mode: on a ladder, holding only left/right climbs to the nearest row
+ * where turnCheck lets Harry step off, instead of needing to stop exactly there.
+ */
+function ladderSnap(s, input) {
+  if (s.base !== CLIMB || input.up || input.down || !(input.left || input.right)) return input;
+  const r = (s.y + 1) & 7;
+  if (r === 0) return input;
+  return r < 4 ? { ...input, down: true } : { ...input, up: true };
 }
 
 /**
@@ -205,6 +217,12 @@ function onDeath(s) {
   s.phase = 'dying';
   pause(s, 2.5, (s) => {
     s.lives = (s.lives - 1) & 0xff;
+    if (s.lives === 0 && s.cheats.easy) {
+      // easy mode: never game over; a fresh set of lives costs half the score
+      s.lives = START_LIVES;
+      halveScore(s);
+      s.events.push({ type: 'scoreHalved' });
+    }
     if (s.lives === 0) { s.phase = 'gameover'; s.events.push({ type: 'gameover' }); return; }
     startLevel(s);
     pause(s, 2.2, (s) => { s.phase = 'level'; }); // $B102 delay before play

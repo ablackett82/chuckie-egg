@@ -14,6 +14,10 @@ Open the site, then on iPad: Share → **Add to Home Screen** for fullscreen and
 - Keyboard: arrows / WASD / O,P,Q,A to move, Space / Z / M to jump; P pause, M mute, F fullscreen
 - Touch: left half = d-pad or stick, right half = jump (⚙ to configure)
 - Gamepad: d-pad / left stick + any face button
+- Cheat mode: C on the title screen, or the checkbox under ⚙. Lives never run out (losing
+  all five refills them but halves the score); left/right step off a ladder without lining
+  up exactly, steer while falling, and still turn a straight-up jump just after take-off;
+  down while falling drops straight. Esc quits to the title. Cheat games don't set the high score.
 
 ## Develop
 
