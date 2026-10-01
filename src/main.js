@@ -124,6 +124,7 @@ async function main() {
     if (keyboard.consume('Escape') && mode !== 'title') { recordHighScore(); mode = 'title'; paused = false; keyboard.clearPressed(); } // the only way out of a cheat game
 
     if (mode === 'title') {
+      if (updateReady) { location.reload(); return; } // never mid-game: wait for the title screen
       if (keyboard.consume('KeyC')) setCheat(!cheat);
       if (keyboard.consume('KeyV')) setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]);
       if (fire) startGame();
@@ -155,6 +156,13 @@ async function main() {
     requestAnimationFrame(frame);
   }
   let gameOverUntil = 0;
+
+  // A new build has been installed by the service worker (sw.js activates it at once).
+  // Reload into it from the title screen, so a home-screen app updates on one launch.
+  // No controller at load means a first install, where there is nothing to update.
+  let updateReady = false;
+  const sw = navigator.serviceWorker;
+  if (sw?.controller) sw.addEventListener('controllerchange', () => { updateReady = true; });
   requestAnimationFrame(frame);
 
   // unlock audio on the first interaction of any kind
