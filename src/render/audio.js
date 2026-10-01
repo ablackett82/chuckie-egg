@@ -8,6 +8,7 @@ export class Beeper {
     this.ctx = null;
     this.muted = false;
     this.origin = null; // audio time corresponding to machine t = 0
+    this.speed = 1;     // game speed: machine seconds per real second
   }
 
   /** Must be called from a user gesture on iOS. */
@@ -32,13 +33,14 @@ export class Beeper {
     if (!this.ctx || this.ctx.state !== 'running') { sfx.length = 0; return; }
     const now = this.ctx.currentTime;
     // keep the machine clock and audio clock aligned, with a little scheduling slack
-    const want = now - nowT / CPU_HZ + 0.04;
+    const hz = CPU_HZ * this.speed; // machine T-states per real second
+    const want = now - nowT / hz + 0.04;
     if (this.origin === null || Math.abs(want - this.origin) > 0.1) this.origin = want;
     else this.origin += (want - this.origin) * 0.05;
     for (const b of sfx) {
       if (this.muted) continue;
       const f = beepHz(b.h);
-      const start = this.origin + b.at / CPU_HZ;
+      const start = this.origin + b.at / hz;
       const dur = b.l / f;
       if (start < now - 0.05) continue;
       const osc = this.ctx.createOscillator();

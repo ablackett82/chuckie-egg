@@ -220,6 +220,9 @@ function drawAndLand(s) {
   if (((s.y + 1) & 7) !== 0) return;
   s.jumpState = 0;
   if (s.base === CLIMB) s.base = FACE_RIGHT;
+  // easy mode: a steered fall off a lift can reach a platform; the original
+  // never clears onLift here, so walk() would keep re-starting the fall
+  if (s.cheats.easy) s.onLift = 0;
 }
 
 /** $A256: land on lift `n` (1 or 2) if the sprite bottom is on its top edge. */

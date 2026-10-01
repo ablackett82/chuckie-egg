@@ -10,6 +10,7 @@ import { Touch } from './input/touch.js';
 
 const STEP_T = 34944;      // fixed simulation quantum: 1/100 s of Z80 time
 const MAX_FRAME_S = 0.1;   // never simulate more than this per animation frame
+const SPEEDS = [1, 0.8, 0.6]; // game speed choices (V on the title screen cycles them)
 
 async function loadJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); }
 
@@ -28,6 +29,7 @@ async function main() {
   const touch = new Touch(document.getElementById('touch'));
   touch.onPanelToggle = (open) => { if (mode === 'game') paused = open; };
   touch.onCheatToggle = (on) => setCheat(on);
+  touch.onSpeedChange = (v) => setSpeed(v);
 
   let mode = 'title';
   let game = null;
@@ -36,6 +38,10 @@ async function main() {
   let cheat = false;
   try { cheat = localStorage.getItem('chuckie.cheat') === '1'; } catch { /* storage blocked */ }
   touch.setCheat(cheat);
+  let speed = 1;
+  try { speed = Number(localStorage.getItem('chuckie.speed')) || 1; } catch { /* storage blocked */ }
+  if (!SPEEDS.includes(speed)) speed = 1;
+  setSpeed(speed);
   let acc = 0, last = performance.now();
   const input = { ...NO_INPUT };
 
@@ -56,6 +62,15 @@ async function main() {
     if (game) { game.cheats.easy = on; if (on) game.cheated = true; }
   }
 
+  /** Game speed scales the simulation clock (and the beeper's timing) against real time; a slowed game never sets the high score. */
+  function setSpeed(v) {
+    speed = v;
+    try { localStorage.setItem('chuckie.speed', String(v)); } catch { /* storage blocked */ }
+    touch.setSpeed(v);
+    beeper.speed = v;
+    if (game && v < 1) game.cheated = true;
+  }
+
   function recordHighScore() {
     if (!game || game.cheated) return;
     highScore = Math.max(highScore, scoreValue(game));
@@ -64,7 +79,7 @@ async function main() {
 
   function startGame() {
     game = newGame(levels, rom, { easy: cheat });
-    game.cheated = cheat;
+    game.cheated = cheat || speed < 1; // cheat or slowed games never set the high score
     beginPlay(game);
     mode = 'game';
     acc = 0;
@@ -91,6 +106,7 @@ async function main() {
       { text: 'SPACE OR Z TO JUMP', row: 15, attr: 0x07 },
       { text: 'P PAUSE  M MUTE  F FULLSCREEN', row: 16, attr: 0x07 },
       { text: `CHEAT MODE ${cheat ? 'ON ' : 'OFF'}  ${touch.active ? '(COG)' : '(C)'}`, row: 18, attr: cheat ? 0x46 : 0x05 },
+      { text: `GAME SPEED ${speed}X  ${touch.active ? '(COG)' : '(V)'}`, row: 19, attr: speed === 1 ? 0x05 : 0x46 },
       { text: touch.active ? 'TAP TO START' : 'PRESS FIRE TO START', row: 20, attr: 0x44 },
     ]);
   }
@@ -109,11 +125,12 @@ async function main() {
 
     if (mode === 'title') {
       if (keyboard.consume('KeyC')) setCheat(!cheat);
+      if (keyboard.consume('KeyV')) setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]);
       if (fire) startGame();
       drawTitle();
     } else if (mode === 'game') {
       if (!paused) {
-        acc += dt * CPU_HZ;
+        acc += dt * CPU_HZ * speed;
         while (acc >= STEP_T) { advance(game, STEP_T, () => inp); acc -= STEP_T; }
         beeper.flush(game.sfx, game.t);
         for (const e of game.events) {

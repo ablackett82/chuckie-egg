@@ -100,3 +100,14 @@ test('easy: left/right steers a fall, and steering back onto the ledge saves you
     else assert.ok(s.y < 23); // fell regardless
   }
 });
+
+test('easy: landing on a platform after falling off a lift stands still (no bouncing)', () => {
+  const s = game(true, { startLevel: 2 }); // level 3 has lifts
+  s.onLift = 1; // as if Harry had just walked off a lift
+  runTicks(s, 1, I({ left: true })); // walk() sees Harry off the lift and starts a fall...
+  assert.notEqual(s.jumpState, 0);
+  runTicks(s, 2); // ...which lands straight back on the platform
+  for (let i = 0; i < 20; i++) { runTicks(s, 1); assert.equal(s.jumpState, 0); }
+  assert.equal(s.onLift, 0);
+  assert.equal(s.y, 23);
+});

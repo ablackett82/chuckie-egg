@@ -18,6 +18,8 @@ Open the site, then on iPad: Share → **Add to Home Screen** for fullscreen and
   all five refills them but halves the score); left/right step off a ladder without lining
   up exactly, steer while falling, and still turn a straight-up jump just after take-off;
   down while falling drops straight. Esc quits to the title. Cheat games don't set the high score.
+- Game speed: V on the title screen, or the menu under ⚙: 1x (original), 0.8x or 0.6x.
+  Games played (even partly) below 1x don't set the high score.
 
 ## Develop
 

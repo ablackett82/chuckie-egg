@@ -153,6 +153,7 @@ export class Touch {
         <label>Opacity <input name="opacity" type="range" min="0.1" max="0.9" step="0.05"></label>
         <label><input name="swap" type="checkbox"> Jump on the left (left-handed)</label>
         <label><input class="tc-cheat" type="checkbox"> Cheat mode (endless lives, steer jumps and falls)</label>
+        <label>Game speed <select class="tc-speed"><option value="1">1x (original)</option><option value="0.8">0.8x</option><option value="0.6">0.6x</option></select></label>
         <button class="tc-close" type="button">Done</button>
       </div>`;
     this.pad = el.querySelector('.tc-pad');
@@ -165,13 +166,16 @@ export class Touch {
     this.cheatBox = el.querySelector('.tc-cheat');
     this.onCheatToggle = null; // main.js owns the cheat setting
     this.cheatBox.addEventListener('change', () => this.onCheatToggle?.(this.cheatBox.checked));
+    this.speedSel = el.querySelector('.tc-speed');
+    this.onSpeedChange = null; // main.js owns the speed setting too
+    this.speedSel.addEventListener('change', () => this.onSpeedChange?.(Number(this.speedSel.value)));
     const stop = (e) => e.stopPropagation();
     for (const n of [this.gear, this.panel]) for (const ev of ['pointerdown', 'pointerup', 'pointermove']) n.addEventListener(ev, stop);
     this.gear.addEventListener('click', () => this.openPanel(true));
     el.querySelector('.tc-close').addEventListener('click', () => this.openPanel(false));
     this.panel.addEventListener('input', (e) => {
       const f = e.target;
-      if (!f.name) return; // the cheat box is not a touch setting
+      if (!f.name) return; // cheat and speed are not touch settings
       this.settings[f.name] = f.type === 'checkbox' ? f.checked : f.type === 'range' ? Number(f.value) : f.value;
       save(this.settings);
       this.applySettings();
@@ -179,6 +183,7 @@ export class Touch {
   }
 
   setCheat(on) { this.cheatBox.checked = on; }
+  setSpeed(v) { this.speedSel.value = String(v); }
 
   openPanel(open) {
     this.panel.hidden = !open;
