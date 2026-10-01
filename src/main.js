@@ -10,7 +10,7 @@ import { Touch } from './input/touch.js';
 
 const STEP_T = 34944;      // fixed simulation quantum: 1/100 s of Z80 time
 const MAX_FRAME_S = 0.1;   // never simulate more than this per animation frame
-const SPEEDS = [1, 0.8, 0.6]; // game speed choices (V on the title screen cycles them)
+const SPEEDS = [1, 0.8, 0.6, 0.4]; // game speed choices (V on the title screen cycles them)
 
 async function loadJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); }
 

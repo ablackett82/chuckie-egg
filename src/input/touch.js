@@ -153,7 +153,7 @@ export class Touch {
         <label>Opacity <input name="opacity" type="range" min="0.1" max="0.9" step="0.05"></label>
         <label><input name="swap" type="checkbox"> Jump on the left (left-handed)</label>
         <label><input class="tc-cheat" type="checkbox"> Cheat mode (endless lives, steer jumps and falls)</label>
-        <label>Game speed <select class="tc-speed"><option value="1">1x (original)</option><option value="0.8">0.8x</option><option value="0.6">0.6x</option></select></label>
+        <label>Game speed <select class="tc-speed"><option value="1">1x (original)</option><option value="0.8">0.8x</option><option value="0.6">0.6x</option><option value="0.4">0.4x</option></select></label>
         <button class="tc-close" type="button">Done</button>
       </div>`;
     this.pad = el.querySelector('.tc-pad');
